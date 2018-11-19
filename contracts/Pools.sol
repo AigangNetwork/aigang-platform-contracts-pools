@@ -44,7 +44,8 @@ contract Pools is Owned {
         Active,       // 1
         Distributing, // 2
         Funded,       // 3 
-        Paused        // 4
+        Paused,       // 4
+        Canceled      // 5 
     }  
 
     uint8 public constant version = 1;
@@ -96,8 +97,9 @@ contract Pools is Owned {
         pools[_poolId].status = _status;
     }
     
-     function setPoolDistributing(bytes32 _poolId, uint _amountDistributing) external onlyOwnerOrSuperOwner {
-        setPoolStatus(_poolId, PoolStatus.Distributing);
+    // This method will be called for returning money when canceled or set everyone to take rewards by formula
+    function setPoolamountDistributing(bytes32 _poolId, PoolStatus _poolStatus, uint _amountDistributing) external onlyOwnerOrSuperOwner {
+        setPoolStatus(_poolId, _poolStatus);
         pools[_poolId].amountDistributing = _amountDistributing;
     }
 
@@ -139,12 +141,12 @@ contract Pools is Owned {
         setPoolStatus(_poolId,PoolStatus.Funded);
     }
     
-     function payout(bytes32 _poolId, bytes32 _contributionId) public contractNotPaused {
+    function payout(bytes32 _poolId, bytes32 _contributionId) public contractNotPaused {
         require(pools[_poolId].status == PoolStatus.Distributing, "Pool should be Distributing");
         require(pools[_poolId].amountDistributing > pools[_poolId].paidout, "Pool should be not empty");
         
         Contribution storage con = pools[_poolId].contributions[_contributionId];
-        assert(con.paidout == 0);
+        require(con.paidout == 0, "Contribution already paidout");
         
         IPrizeCalculator calculator = IPrizeCalculator(pools[_poolId].prizeCalculator);
     
@@ -158,6 +160,22 @@ contract Pools is Owned {
         con.paidout = winAmount;
         pools[_poolId].paidout = pools[_poolId].paidout.add(winAmount);
         assert(IERC20(token).transfer(con.owner, winAmount));
+        emit Paidout(_poolId, _contributionId);
+    }
+
+    function refund(bytes32 _poolId, bytes32 _contributionId) public contractNotPaused {
+        require(pools[_poolId].status == PoolStatus.Canceled, "Pool should be canceled");
+        require(pools[_poolId].amountDistributing > pools[_poolId].paidout, "Pool should be not empty");
+        
+        Contribution storage con = pools[_poolId].contributions[_contributionId];
+        require(con.paidout == 0, "Contribution already paidout");        
+        require(con.amount > 0, "Contribution not valid");   
+        require(con.owner != address(0), "Owner not valid"); 
+
+        con.paidout = con.amount;
+        pools[_poolId].paidout = pools[_poolId].paidout.add(con.amount);
+        assert(IERC20(token).transfer(con.owner, con.amount));
+
         emit Paidout(_poolId, _contributionId);
     }
 
