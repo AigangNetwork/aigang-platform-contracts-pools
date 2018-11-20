@@ -9,7 +9,7 @@ contract Pools is Owned {
     using SafeMath for uint;  
 
     event Initialize(address _token);
-    event PoolAdded(bytes32 _destination);
+    event PoolAdded(bytes32 _id);
     event ContributionAdded(bytes32 _poolId, bytes32 _contributionId);
     event PoolStatusChange(bytes32 _poolId, PoolStatus _oldStatus, PoolStatus _newStatus);
     event Paidout(bytes32 _poolId, bytes32 _contributionId);
@@ -54,7 +54,7 @@ contract Pools is Owned {
     uint public totalPools;
     
     mapping(bytes32 => Pool) public pools;
-    mapping(address => ContributionIndex[]) public walletContributions;
+    mapping(address => ContributionIndex[]) public walletPools;
 
     modifier contractNotPaused() {
         require(paused == false, "Contract is paused");
@@ -132,7 +132,7 @@ contract Pools is Owned {
         // Transfer tokens from sender to this contract
         require(IERC20(_token).transferFrom(_from, address(this), _amountOfTokens), "Tokens transfer failed.");
 
-        walletContributions[_from].push(ContributionIndex(poolIdString, contributionIdString));
+        walletPools[_from].push(ContributionIndex(poolIdString, contributionIdString));
         pools[poolIdString].amountCollected = pools[poolIdString].amountCollected.add(_amountOfTokens); 
         pools[poolIdString].contributions[contributionIdString].owner = _from;
         pools[poolIdString].contributions[contributionIdString].amount = _amountOfTokens;

@@ -181,13 +181,19 @@ contract('Product', accounts => {
         });
 
         const contribution = await poolsInstance.getContribution(poolId, contributionId);
-        
+        const walletPools = await poolsInstance.walletPools.call(c1,0,{
+          from: owner
+        })
+      
         assert.equal(contribution[0], c1);
         assert.equal(contribution[1].toNumber(), amount);
         assert.equal(contribution[2].toNumber(), 0);
         
         assert.equal(0, await testTokenInstance.balanceOf(c1))
         assert.equal(amount, await testTokenInstance.balanceOf(poolsInstance.address))
+
+        assert.equal(walletPools[0], poolId);
+        assert.equal(walletPools[1], contributionId);
       })
 
       it('happy refund flow', async function () {
@@ -245,12 +251,4 @@ contract('Product', accounts => {
         assert.equal(amount, await testTokenInstance.balanceOf(destination))
       })
     })
-
-
-
-
-    
-
-
-
 })
