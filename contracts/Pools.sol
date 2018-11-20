@@ -51,6 +51,7 @@ contract Pools is Owned {
     uint8 public constant version = 1;
     bool public paused = true;
     address public token;
+    uint public totalPools;
     
     mapping(bytes32 => Pool) public pools;
     mapping(address => ContributionIndex[]) public walletContributions;
@@ -81,6 +82,10 @@ contract Pools is Owned {
         onlyOwnerOrSuperOwner 
         contractNotPaused {
         
+        if (pools[_id].status == PoolStatus.NotSet) { // do not increase if update
+            totalPools++;
+        } 
+        
         pools[_id].contributionStartUtc = _contributionStartUtc;
         pools[_id].contributionEndUtc = _contributionEndUtc;
         pools[_id].destination = _destination;
@@ -98,7 +103,7 @@ contract Pools is Owned {
     }
     
     // This method will be called for returning money when canceled or set everyone to take rewards by formula
-    function setPoolamountDistributing(bytes32 _poolId, PoolStatus _poolStatus, uint _amountDistributing) external onlyOwnerOrSuperOwner {
+    function setPoolAmountDistributing(bytes32 _poolId, PoolStatus _poolStatus, uint _amountDistributing) external onlyOwnerOrSuperOwner {
         setPoolStatus(_poolId, _poolStatus);
         pools[_poolId].amountDistributing = _amountDistributing;
     }
@@ -116,7 +121,7 @@ contract Pools is Owned {
         bytes32 poolIdString = bytesToFixedBytes32(_data,0);
         bytes32 contributionIdString = bytesToFixedBytes32(_data,32);
         
-        // // validate pool and Contribution
+        // Validate pool and Contribution
         require(pools[poolIdString].status == PoolStatus.Active, "Status should be active");
         require(pools[poolIdString].contributionStartUtc < now, "Contribution is not started");    
         require(pools[poolIdString].contributionEndUtc > now, "Contribution is ended"); 
@@ -124,15 +129,14 @@ contract Pools is Owned {
         require(pools[poolIdString].amountLimit == 0 ||
                 pools[poolIdString].amountLimit >= pools[poolIdString].amountCollected.add(_amountOfTokens), "Contribution limit reached"); 
         
-
         // Transfer tokens from sender to this contract
         require(IERC20(_token).transferFrom(_from, address(this), _amountOfTokens), "Tokens transfer failed.");
 
         walletContributions[_from].push(ContributionIndex(poolIdString, contributionIdString));
-
+        pools[poolIdString].amountCollected = pools[poolIdString].amountCollected.add(_amountOfTokens); 
         pools[poolIdString].contributions[contributionIdString].owner = _from;
         pools[poolIdString].contributions[contributionIdString].amount = _amountOfTokens;
-                
+
         emit ContributionAdded(poolIdString, contributionIdString);
     }
     
