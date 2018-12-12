@@ -43,7 +43,7 @@ contract Pools is Owned {
         NotSet,       // 0
         Active,       // 1
         Distributing, // 2
-        Funded,       // 3 
+        Funding,       // 3 
         Paused,       // 4
         Canceled      // 5 
     }  
@@ -142,7 +142,7 @@ contract Pools is Owned {
     
     function transferToDestination(bytes32 _poolId) external onlyOwnerOrSuperOwner {
         assert(IERC20(token).transfer(pools[_poolId].destination, pools[_poolId].amountCollected));
-        setPoolStatus(_poolId,PoolStatus.Funded);
+        setPoolStatus(_poolId,PoolStatus.Funding);
     }
     
     function payout(bytes32 _poolId, bytes32 _contributionId) public contractNotPaused {

@@ -70,7 +70,7 @@ contract Pools is Owned {
     using SafeMath for uint;  
 
     event Initialize(address _token);
-    event PoolAdded(bytes32 _destination);
+    event PoolAdded(bytes32 _id);
     event ContributionAdded(bytes32 _poolId, bytes32 _contributionId);
     event PoolStatusChange(bytes32 _poolId, PoolStatus _oldStatus, PoolStatus _newStatus);
     event Paidout(bytes32 _poolId, bytes32 _contributionId);
@@ -104,7 +104,7 @@ contract Pools is Owned {
         NotSet,       // 0
         Active,       // 1
         Distributing, // 2
-        Funded,       // 3 
+        Funding,       // 3 
         Paused,       // 4
         Canceled      // 5 
     }  
@@ -115,7 +115,7 @@ contract Pools is Owned {
     uint public totalPools;
     
     mapping(bytes32 => Pool) public pools;
-    mapping(address => ContributionIndex[]) public walletContributions;
+    mapping(address => ContributionIndex[]) public walletPools;
 
     modifier contractNotPaused() {
         require(paused == false, "Contract is paused");
@@ -193,7 +193,7 @@ contract Pools is Owned {
         // Transfer tokens from sender to this contract
         require(IERC20(_token).transferFrom(_from, address(this), _amountOfTokens), "Tokens transfer failed.");
 
-        walletContributions[_from].push(ContributionIndex(poolIdString, contributionIdString));
+        walletPools[_from].push(ContributionIndex(poolIdString, contributionIdString));
         pools[poolIdString].amountCollected = pools[poolIdString].amountCollected.add(_amountOfTokens); 
         pools[poolIdString].contributions[contributionIdString].owner = _from;
         pools[poolIdString].contributions[contributionIdString].amount = _amountOfTokens;
@@ -203,7 +203,7 @@ contract Pools is Owned {
     
     function transferToDestination(bytes32 _poolId) external onlyOwnerOrSuperOwner {
         assert(IERC20(token).transfer(pools[_poolId].destination, pools[_poolId].amountCollected));
-        setPoolStatus(_poolId,PoolStatus.Funded);
+        setPoolStatus(_poolId,PoolStatus.Funding);
     }
     
     function payout(bytes32 _poolId, bytes32 _contributionId) public contractNotPaused {
