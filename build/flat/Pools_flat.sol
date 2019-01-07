@@ -71,6 +71,7 @@ contract Pools is Owned {
 
     event Initialize(address _token);
     event PoolAdded(bytes32 _id);
+    event PoolDestinationUpdated(bytes32 _id);
     event ContributionAdded(bytes32 _poolId, bytes32 _contributionId);
     event PoolStatusChange(bytes32 _poolId, PoolStatus _oldStatus, PoolStatus _newStatus);
     event Paidout(bytes32 _poolId, bytes32 _contributionId);
@@ -155,6 +156,17 @@ contract Pools is Owned {
         pools[_id].prizeCalculator = _prizeCalculator;
         
         emit PoolAdded(_id);
+    }
+
+    function updateDestination(bytes32 _id, 
+            address _destination) 
+        external 
+        onlyOwnerOrSuperOwner 
+        contractNotPaused {
+
+        pools[_id].destination = _destination;
+
+        emit PoolDestinationUpdated(_id);
     }
     
     function setPoolStatus(bytes32 _poolId, PoolStatus _status) public onlyOwnerOrSuperOwner {
